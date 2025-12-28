@@ -4,6 +4,8 @@ The followup AI supported iteration building a top down panzer game in golang, u
 
 ## structure
 
+tries to follow https://www.ardanlabs.com/blog/2017/02/design-philosophy-on-packaging.html
+
 
 ## features
 - lighting
