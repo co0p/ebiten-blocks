@@ -85,6 +85,12 @@ Examples:
 - Keep scene management and timing separate from individual scene logic, so scenes can focus on behavior.
 - Keep ECS systems focused on a single responsibility (for example, movement or rendering) instead of mixing unrelated concerns.
 
+### No backward compatibility or hidden fallbacks
+
+- Do not maintain long-lived runtime fallbacks or legacy code paths once an increment is merged; prefer deleting old behavior outright.
+- When assumptions are violated (for example, required components are missing), fail fast via tests or explicit panics instead of silently degrading behavior.
+- Short-lived experiment branches are allowed, but the main branch should not carry configuration switches that toggle between old and new models.
+
 ## 4. Testing, CI/CD, and Observability
 
 ### Testing (blackbox-oriented)

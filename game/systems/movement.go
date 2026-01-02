@@ -8,42 +8,34 @@ import (
 )
 
 // MovementSystem updates velocity based on control intent and movement
-// parameters (when present) and then applies velocity to transform for all
-// entities that have Transform and Velocity components.
+// parameters and then applies velocity to transform for all
+// entities that participate in the tank movement model.
 func MovementSystem(world *ecs.World, dt float64) {
-	required := ecs.MaskFor(components.TypeTransform, components.TypeVelocity)
+	required := ecs.MaskFor(
+		components.TypeTransform,
+		components.TypeVelocity,
+		components.TypeControlIntent,
+		components.TypeMovementParams,
+	)
 	entities := world.Find(required)
 	for _, id := range entities {
 		cT, okT := world.GetComponent(id, components.TypeTransform)
 		cV, okV := world.GetComponent(id, components.TypeVelocity)
-		if !okT || !okV {
-			continue
+		cIntent, okCI := world.GetComponent(id, components.TypeControlIntent)
+		cParams, okMP := world.GetComponent(id, components.TypeMovementParams)
+		if !okT || !okV || !okCI || !okMP {
+			panic("MovementSystem: entity missing required movement components")
 		}
 
 		p, okP := cT.(*components.Transform)
 		v, okVel := cV.(*components.Velocity)
-		if !okP || !okVel {
-			continue
+		intent, okI := cIntent.(*components.ControlIntent)
+		params, okM := cParams.(*components.MovementParams)
+		if !okP || !okVel || !okI || !okM {
+			panic("MovementSystem: component type assertion failed")
 		}
 
-		// If the entity has control intent and movement parameters, use the
-		// accelerated, capped movement model. Otherwise, fall back to the
-		// legacy behavior of directly integrating velocity.
-		cIntent, okCI := world.GetComponent(id, components.TypeControlIntent)
-		cParams, okMP := world.GetComponent(id, components.TypeMovementParams)
-		if okCI && okMP {
-			intent, okI := cIntent.(*components.ControlIntent)
-			params, okM := cParams.(*components.MovementParams)
-			if okI && okM {
-				applyMovementModel(p, v, intent, params, dt)
-				continue
-			}
-		}
-
-		// Legacy integration path.
-		p.X += v.VX * dt
-		p.Y += v.VY * dt
-		p.Rotation += v.Angular * dt
+		applyMovementModel(p, v, intent, params, dt)
 	}
 }
 

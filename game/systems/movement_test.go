@@ -14,9 +14,9 @@ func newTestTank(world *ecs.World) ecs.EntityID {
 	world.AddComponent(id, &components.Velocity{})
 	world.AddComponent(id, &components.ControlIntent{})
 	world.AddComponent(id, &components.MovementParams{
-		MaxForwardSpeed:     100,
-		MaxBackwardSpeed:    60,
-		LinearAcceleration:  200,
+		MaxForwardSpeed:     133.3333,
+		MaxBackwardSpeed:    80,
+		LinearAcceleration:  250,
 		LinearDeceleration:  300,
 		MaxTurnRate:         3,
 		AngularAcceleration: 6,
@@ -53,14 +53,14 @@ func TestMovementSystem_ForwardThrottleAcceleratesTowardMax(t *testing.T) {
 		if spd < prevSpeed-1e-6 {
 			t.Fatalf("speed decreased at step %d: prev=%v, got=%v", i, prevSpeed, spd)
 		}
-		if spd > 100+1e-3 {
+		if spd > 133.3333+1e-3 {
 			t.Fatalf("speed exceeded max forward: %v", spd)
 		}
 		prevSpeed = spd
 	}
 
-	if final := linearSpeed(world, id); final < 90 {
-		t.Fatalf("final forward speed too low, got %v, want near 100", final)
+	if final := linearSpeed(world, id); final < 120 {
+		t.Fatalf("final forward speed too low, got %v, want near 133", final)
 	}
 }
 
@@ -80,14 +80,14 @@ func TestMovementSystem_BackwardThrottleAcceleratesTowardNegativeMax(t *testing.
 		if spd > prevSpeed+1e-6 {
 			t.Fatalf("backward speed increased toward zero at step %d: prev=%v, got=%v", i, prevSpeed, spd)
 		}
-		if spd < -60-1e-3 {
+		if spd < -80-1e-3 {
 			t.Fatalf("speed exceeded max backward: %v", spd)
 		}
 		prevSpeed = spd
 	}
 
-	if final := linearSpeed(world, id); final > -50 {
-		t.Fatalf("final backward speed too high, got %v, want near -60", final)
+	if final := linearSpeed(world, id); final > -65 {
+		t.Fatalf("final backward speed too high, got %v, want near -80", final)
 	}
 }
 

@@ -32,13 +32,15 @@ func TestRunScene_UpdateAppliesInputAndMovement(t *testing.T) {
 	s := New(nil)
 	world := s.World()
 	player := s.Player()
+	testMgr := input.NewTestManager()
+	input.SetManager(testMgr)
 
 	cT, _ := world.GetComponent(player, components.TypeTransform)
 	p := cT.(*components.Transform)
 	p.X, p.Y, p.Rotation = 0, 0, 0
 
 	// Hold forward key down.
-	input.SetActionStateForTest(input.ActionMoveForward, true)
+	testMgr.State[input.ActionMoveForward] = true
 
 	// Call Update repeatedly; Scene should poll input, update intent, and apply movement.
 	for i := 0; i < 10; i++ {

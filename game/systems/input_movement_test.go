@@ -18,16 +18,10 @@ func newInputTestWorld() (*ecs.World, ecs.EntityID) {
 	return w, id
 }
 
-// helper to clear all input state between tests
-func clearInputState() {
-	// Poll with no keys pressed will clear all states; this relies on
-	// Ebiten state being initially empty when tests run headless.
-	input.Poll()
-}
-
 func TestInputMovementSystem_SetsThrottleFromMoveKeys(t *testing.T) {
 	w, id := newInputTestWorld()
-	clearInputState()
+	manager := input.NewTestManager()
+	input.SetManager(manager)
 
 	// With no keys pressed, intent should remain neutral.
 	InputMovementSystem(w, id)
@@ -38,24 +32,24 @@ func TestInputMovementSystem_SetsThrottleFromMoveKeys(t *testing.T) {
 	}
 
 	// Simulate pressing forward.
-	input.SetActionStateForTest(input.ActionMoveForward, true)
-	input.SetActionStateForTest(input.ActionMoveBackward, false)
+	manager.State[input.ActionMoveForward] = true
+	manager.State[input.ActionMoveBackward] = false
 	InputMovementSystem(w, id)
 	if intent.Throttle != 1 {
 		t.Fatalf("expected throttle=1 when moving forward, got %v", intent.Throttle)
 	}
 
 	// Simulate pressing backward.
-	input.SetActionStateForTest(input.ActionMoveForward, false)
-	input.SetActionStateForTest(input.ActionMoveBackward, true)
+	manager.State[input.ActionMoveForward] = false
+	manager.State[input.ActionMoveBackward] = true
 	InputMovementSystem(w, id)
 	if intent.Throttle != -1 {
 		t.Fatalf("expected throttle=-1 when moving backward, got %v", intent.Throttle)
 	}
 
 	// No move keys.
-	input.SetActionStateForTest(input.ActionMoveForward, false)
-	input.SetActionStateForTest(input.ActionMoveBackward, false)
+	manager.State[input.ActionMoveForward] = false
+	manager.State[input.ActionMoveBackward] = false
 	InputMovementSystem(w, id)
 	if intent.Throttle != 0 {
 		t.Fatalf("expected throttle=0 when no move keys pressed, got %v", intent.Throttle)
@@ -64,7 +58,8 @@ func TestInputMovementSystem_SetsThrottleFromMoveKeys(t *testing.T) {
 
 func TestInputMovementSystem_SetsTurnFromTurnKeys(t *testing.T) {
 	w, id := newInputTestWorld()
-	clearInputState()
+	manager := input.NewTestManager()
+	input.SetManager(manager)
 
 	InputMovementSystem(w, id)
 	cI, _ := w.GetComponent(id, components.TypeControlIntent)
@@ -74,24 +69,24 @@ func TestInputMovementSystem_SetsTurnFromTurnKeys(t *testing.T) {
 	}
 
 	// Turn left.
-	input.SetActionStateForTest(input.ActionTurnLeft, true)
-	input.SetActionStateForTest(input.ActionTurnRight, false)
+	manager.State[input.ActionTurnLeft] = true
+	manager.State[input.ActionTurnRight] = false
 	InputMovementSystem(w, id)
 	if intent.Turn != -1 {
 		t.Fatalf("expected turn=-1 when turning left, got %v", intent.Turn)
 	}
 
 	// Turn right.
-	input.SetActionStateForTest(input.ActionTurnLeft, false)
-	input.SetActionStateForTest(input.ActionTurnRight, true)
+	manager.State[input.ActionTurnLeft] = false
+	manager.State[input.ActionTurnRight] = true
 	InputMovementSystem(w, id)
 	if intent.Turn != 1 {
 		t.Fatalf("expected turn=1 when turning right, got %v", intent.Turn)
 	}
 
 	// No turn keys.
-	input.SetActionStateForTest(input.ActionTurnLeft, false)
-	input.SetActionStateForTest(input.ActionTurnRight, false)
+	manager.State[input.ActionTurnLeft] = false
+	manager.State[input.ActionTurnRight] = false
 	InputMovementSystem(w, id)
 	if intent.Turn != 0 {
 		t.Fatalf("expected turn=0 when no turn keys pressed, got %v", intent.Turn)
@@ -100,7 +95,8 @@ func TestInputMovementSystem_SetsTurnFromTurnKeys(t *testing.T) {
 
 func TestInputMovementSystem_DoesNotModifyVelocityDirectly(t *testing.T) {
 	w, id := newInputTestWorld()
-	clearInputState()
+	manager := input.NewTestManager()
+	input.SetManager(manager)
 
 	// Pre-set some non-zero velocity and ensure it is not overwritten.
 	cV, _ := w.GetComponent(id, components.TypeVelocity)
@@ -109,8 +105,8 @@ func TestInputMovementSystem_DoesNotModifyVelocityDirectly(t *testing.T) {
 	v.VY = -5
 	v.Angular = 1.5
 
-	input.SetActionStateForTest(input.ActionMoveForward, true)
-	input.SetActionStateForTest(input.ActionTurnRight, true)
+	manager.State[input.ActionMoveForward] = true
+	manager.State[input.ActionTurnRight] = true
 	InputMovementSystem(w, id)
 
 	if v.VX != 10 || v.VY != -5 || v.Angular != 1.5 {

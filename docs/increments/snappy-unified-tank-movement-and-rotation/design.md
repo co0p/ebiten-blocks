@@ -261,11 +261,11 @@ The design does not introduce any new external dependencies or build steps. Exis
 - Building the project.
 - Running automated tests (including new movement tests).
 
-Rollout considerations:
+ Rollout considerations:
 
 - Introduce the new movement behavior in a way that is compatible with the existing scene and ECS structure, so that the game can still be run and tested locally via usual commands.
-- During development, it is possible to retain the old behavior behind a simple configuration mechanism or local switch, but once the increment is complete, all tanks should use the new model and no legacy instant-velocity logic should remain.
-- If serious regressions in controllability or feel are discovered, the movement logic can be reverted to the previous simpler model by restoring the prior mapping from input to velocity, as an emergency measure.
+- Once the increment is complete, all tanks should use the new model and no legacy instant-velocity logic should remain; do not keep runtime switches that toggle back to the old behavior.
+- If serious regressions in controllability or feel are discovered, the movement logic can be reverted in a follow-up change by restoring the prior mapping from input to velocity, but this should be done explicitly rather than via hidden fallbacks.
 
 No special deployment or release process is required; changes move through the same build-and-run workflow as other increments.
 

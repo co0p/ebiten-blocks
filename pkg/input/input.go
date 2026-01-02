@@ -25,26 +25,26 @@ var actionBindings = map[Action][]ebiten.Key{
 	ActionFire:         {ebiten.KeySpace},
 }
 
-// state caches the current frame's action state.
-var state = map[Action]bool{}
+// Manager abstracts input management so production code can use Ebiten-backed
+// input while tests can install a fake implementation.
+type Manager interface {
+	Poll()
+	IsActionDown(Action) bool
+	AnyKeyPressed() bool
+}
 
-// testState and useTestState allow tests to override action state without
-// depending on Ebiten's real keyboard input.
-var (
-	testState    = map[Action]bool{}
-	useTestState bool
-)
+// ebitenManager uses Ebiten's keyboard state as the input source.
+type ebitenManager struct {
+	state map[Action]bool
+}
 
-// Poll updates the cached action state from Ebiten's keyboard state, unless
-// tests have installed an override via SetActionStateForTest.
-func Poll() {
-	if useTestState {
-		for action := range actionBindings {
-			state[action] = testState[action]
-		}
-		return
+func newEbitenManager() *ebitenManager {
+	return &ebitenManager{
+		state: make(map[Action]bool),
 	}
+}
 
+func (m *ebitenManager) Poll() {
 	for action, keys := range actionBindings {
 		pressed := false
 		for _, k := range keys {
@@ -53,27 +53,71 @@ func Poll() {
 				break
 			}
 		}
-		state[action] = pressed
+		m.state[action] = pressed
 	}
 }
 
-// SetActionStateForTest allows tests to directly control the action state
-// without depending on Ebiten's real keyboard state. It is not intended for
-// use in production code.
-func SetActionStateForTest(a Action, down bool) {
-	useTestState = true
-	testState[a] = down
-	state[a] = down
+func (m *ebitenManager) IsActionDown(a Action) bool {
+	return m.state[a]
+}
+
+func (m *ebitenManager) AnyKeyPressed() bool {
+	return len(inpututil.PressedKeys()) > 0
+}
+
+// TestManager is a simple in-memory Manager suitable for tests.
+type TestManager struct {
+	State map[Action]bool
+}
+
+// NewTestManager constructs a TestManager with an empty state map.
+func NewTestManager() *TestManager {
+	return &TestManager{State: make(map[Action]bool)}
+}
+
+func (m *TestManager) Poll() {}
+
+func (m *TestManager) IsActionDown(a Action) bool {
+	return m.State[a]
+}
+
+func (m *TestManager) AnyKeyPressed() bool {
+	for _, down := range m.State {
+		if down {
+			return true
+		}
+	}
+	return false
+}
+
+var (
+	defaultManager Manager = newEbitenManager()
+	manager        Manager = defaultManager
+)
+
+// SetManager replaces the current input manager. Passing nil restores the
+// default Ebiten-backed manager. This is primarily intended for tests.
+func SetManager(m Manager) {
+	if m == nil {
+		manager = defaultManager
+		return
+	}
+	manager = m
+}
+
+// Poll updates the current action state via the active Manager.
+func Poll() {
+	manager.Poll()
 }
 
 // IsActionDown reports whether the given action is currently active.
 func IsActionDown(a Action) bool {
-	return state[a]
+	return manager.IsActionDown(a)
 }
 
 // AnyKeyPressed reports whether any key was pressed in the current frame.
 // This is useful for simple "press any key" screens while still keeping
 // Ebiten-specific details inside the input package.
 func AnyKeyPressed() bool {
-	return len(inpututil.PressedKeys()) > 0
+	return manager.AnyKeyPressed()
 }

@@ -28,8 +28,8 @@ func New(_ interface{}) *Scene {
 	w.AddComponent(player, &components.Velocity{})
 	w.AddComponent(player, &components.ControlIntent{})
 	w.AddComponent(player, &components.MovementParams{
-		MaxForwardSpeed:     100,
-		MaxBackwardSpeed:    60,
+		MaxForwardSpeed:     133.3333,
+		MaxBackwardSpeed:    80,
 		LinearAcceleration:  200,
 		LinearDeceleration:  300,
 		MaxTurnRate:         3,
