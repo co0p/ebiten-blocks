@@ -45,3 +45,15 @@ func TestMovementParamsComponentTypeAndDefaults(t *testing.T) {
 		t.Errorf("AngularDeceleration default = %v, want non-negative", m.AngularDeceleration)
 	}
 }
+
+func TestRenderOrderComponentTypeAndDefaults(t *testing.T) {
+	r := RenderOrder{}
+	if r.Type() != TypeRenderOrder {
+		t.Fatalf("RenderOrder Type() = %v, want %v", r.Type(), TypeRenderOrder)
+	}
+
+	// Default Z should be zero, which can be treated as the baseline layer.
+	if r.Z != 0 {
+		t.Errorf("default RenderOrder.Z = %v, want 0", r.Z)
+	}
+}

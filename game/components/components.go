@@ -17,6 +17,7 @@ const (
 	TypeProjectile
 	TypeControlIntent
 	TypeMovementParams
+	TypeRenderOrder
 )
 
 // Transform represents position, rotation and uniform scale.
@@ -108,3 +109,12 @@ type MovementParams struct {
 }
 
 func (MovementParams) Type() ecs.ComponentType { return TypeMovementParams }
+
+// RenderOrder represents a simple z-order / render layer for sprite-bearing
+// entities. Lower values are drawn before higher values. When absent, systems
+// should treat the entity as using the default layer.
+type RenderOrder struct {
+	Z int `json:"z"`
+}
+
+func (RenderOrder) Type() ecs.ComponentType { return TypeRenderOrder }

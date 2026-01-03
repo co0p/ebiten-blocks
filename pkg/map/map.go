@@ -45,6 +45,46 @@ func (m *Map) validate() error {
 	return nil
 }
 
+// TileAt returns the tile ID at the given tile coordinates (x, y).
+//
+// The coordinate system is zero-based with (0,0) at the top-left
+// corner of the map, x increasing to the right and y increasing
+// downward. If the coordinates are out of bounds, TileAt returns
+// ("", false).
+func (m *Map) TileAt(x, y int) (string, bool) {
+	if x < 0 || y < 0 || x >= m.Width || y >= m.Height {
+		return "", false
+	}
+	if len(m.Tiles) != m.Height {
+		return "", false
+	}
+	row := m.Tiles[y]
+	if len(row) != m.Width {
+		return "", false
+	}
+	return row[x], true
+}
+
+// TileAtWorld maps world-space coordinates (worldX, worldY) to the
+// corresponding tile and returns its tile ID.
+//
+// It assumes a uniform square tile size given by tileSize, with the
+// top-left corner of the map located at world coordinate (0,0).
+// World coordinates are interpreted in the same unit system as the
+// tile size (for example, pixels). Coordinates that fall outside the
+// map's rectangular extent result in ("", false).
+func (m *Map) TileAtWorld(worldX, worldY, tileSize float64) (string, bool) {
+	if tileSize <= 0 {
+		return "", false
+	}
+	if worldX < 0 || worldY < 0 {
+		return "", false
+	}
+	tileX := int(worldX / tileSize)
+	tileY := int(worldY / tileSize)
+	return m.TileAt(tileX, tileY)
+}
+
 // NewGrassMap constructs a grass-only map using tileGrass1 and
 // tileGrass2, with deterministic layout based on the given seed
 // and dimensions.

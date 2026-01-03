@@ -2,6 +2,7 @@ package mappkg
 
 import (
 	"encoding/json"
+	"math"
 	"testing"
 )
 
@@ -113,5 +114,100 @@ func TestNewGrassMapDeterministicAndValid(t *testing.T) {
 				t.Fatalf("non-deterministic tile at (%d,%d): %q vs %q", x, y, first.Tiles[y][x], second.Tiles[y][x])
 			}
 		}
+	}
+}
+
+func TestTileAtReturnsExpectedTilesAndOutOfBoundsFalse(t *testing.T) {
+	m, err := NewGrassMap(1, 3, 2)
+	if err != nil {
+		t.Fatalf("NewGrassMap failed: %v", err)
+	}
+
+	// Sanity: dimensions match what we requested.
+	if m.Width != 3 || m.Height != 2 {
+		t.Fatalf("unexpected dimensions: %#v", m)
+	}
+
+	// In-bounds queries should return a tile ID and ok == true.
+	for y := 0; y < m.Height; y++ {
+		for x := 0; x < m.Width; x++ {
+			tile, ok := m.TileAt(x, y)
+			if !ok {
+				t.Fatalf("expected ok for in-bounds TileAt(%d,%d)", x, y)
+			}
+			if tile != "tileGrass1" && tile != "tileGrass2" {
+				t.Fatalf("unexpected tile at (%d,%d): %q", x, y, tile)
+			}
+		}
+	}
+
+	// Out-of-bounds coordinates should return ok == false.
+	if _, ok := m.TileAt(-1, 0); ok {
+		t.Fatalf("expected ok == false for TileAt(-1,0)")
+	}
+	if _, ok := m.TileAt(0, -1); ok {
+		t.Fatalf("expected ok == false for TileAt(0,-1)")
+	}
+	if _, ok := m.TileAt(m.Width, 0); ok {
+		t.Fatalf("expected ok == false for TileAt(width,0)")
+	}
+	if _, ok := m.TileAt(0, m.Height); ok {
+		t.Fatalf("expected ok == false for TileAt(0,height)")
+	}
+}
+
+func TestTileAtWorldMapsWorldToCorrectTileAndOutOfBounds(t *testing.T) {
+	m, err := NewGrassMap(1, 3, 2)
+	if err != nil {
+		t.Fatalf("NewGrassMap failed: %v", err)
+	}
+
+	tileSize := 16.0
+
+	// World coordinates at tile centers should map to the corresponding tiles.
+	for ty := 0; ty < m.Height; ty++ {
+		for tx := 0; tx < m.Width; tx++ {
+			worldX := (float64(tx) + 0.5) * tileSize
+			worldY := (float64(ty) + 0.5) * tileSize
+
+			tileByWorld, ok := m.TileAtWorld(worldX, worldY, tileSize)
+			if !ok {
+				t.Fatalf("expected ok for in-bounds TileAtWorld at (%f,%f)", worldX, worldY)
+			}
+
+			tileByIndex, ok := m.TileAt(tx, ty)
+			if !ok {
+				t.Fatalf("expected ok for TileAt(%d,%d)", tx, ty)
+			}
+
+			if tileByWorld != tileByIndex {
+				t.Fatalf("TileAtWorld mismatch at tile (%d,%d): got %q want %q", tx, ty, tileByWorld, tileByIndex)
+			}
+		}
+	}
+
+	// Out-of-bounds world coordinates should return ok == false.
+	// Negative coordinates.
+	if _, ok := m.TileAtWorld(-1, 0, tileSize); ok {
+		t.Fatalf("expected ok == false for TileAtWorld(-1,0)")
+	}
+	if _, ok := m.TileAtWorld(0, -1, tileSize); ok {
+		t.Fatalf("expected ok == false for TileAtWorld(0,-1)")
+	}
+
+	// Coordinates beyond the map extents.
+	maxX := float64(m.Width) * tileSize
+	maxY := float64(m.Height) * tileSize
+	if _, ok := m.TileAtWorld(maxX+1, 0, tileSize); ok {
+		t.Fatalf("expected ok == false for TileAtWorld(x beyond map,0)")
+	}
+	if _, ok := m.TileAtWorld(0, maxY+1, tileSize); ok {
+		t.Fatalf("expected ok == false for TileAtWorld(0,y beyond map)")
+	}
+
+	// Very large coordinates should also be treated as out-of-bounds, but
+	// must not cause panics or overflow.
+	if _, ok := m.TileAtWorld(math.MaxFloat64, math.MaxFloat64, tileSize); ok {
+		t.Fatalf("expected ok == false for TileAtWorld at huge coordinates")
 	}
 }
