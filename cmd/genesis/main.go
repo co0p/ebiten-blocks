@@ -3,40 +3,41 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"image"
+	_ "image/png"
 	"os"
 	"path/filepath"
-	"strconv"
 
-	mappkg "github.com/co0p/tankismus/pkg/map"
+	"github.com/co0p/tankismus/game/maps"
 )
 
 // run is the core entrypoint for the map generator CLI. It is kept
 // separate from main to make it easy to test.
 func run(args []string) error {
-	if len(args) < 4 {
-		return fmt.Errorf("usage: genesis <seed> <width> <height> <output-path>")
+	if len(args) != 2 {
+		return fmt.Errorf("usage: genesis <input-png> <output-path>")
 	}
 
-	seedStr := args[0]
-	widthStr := args[1]
-	heightStr := args[2]
-	outputPath := args[3]
+	inputPath := args[0]
+	outputPath := args[1]
 
-	seed, err := strconv.ParseInt(seedStr, 10, 64)
+	inFile, err := os.Open(inputPath)
 	if err != nil {
-		return fmt.Errorf("invalid seed %q: %w", seedStr, err)
+		return fmt.Errorf("cannot open input image %q: %w", inputPath, err)
 	}
-	if seed < 0 || seed > mappkg.MaxSeed {
-		return fmt.Errorf("seed must be between 0 and %d", mappkg.MaxSeed)
+	defer inFile.Close()
+
+	img, format, err := image.Decode(inFile)
+	if err != nil {
+		return fmt.Errorf("failed to decode input image %q: %w", inputPath, err)
+	}
+	if format != "png" {
+		return fmt.Errorf("unsupported input format %q: expected png", format)
 	}
 
-	width, err := strconv.Atoi(widthStr)
-	if err != nil || width <= 0 {
-		return fmt.Errorf("invalid width %q", widthStr)
-	}
-	height, err := strconv.Atoi(heightStr)
-	if err != nil || height <= 0 {
-		return fmt.Errorf("invalid height %q", heightStr)
+	world, err := maps.GenerateFromImage(img)
+	if err != nil {
+		return fmt.Errorf("failed to generate map from image: %w", err)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
@@ -50,11 +51,6 @@ func run(args []string) error {
 	}
 	defer file.Close()
 
-	world, err := mappkg.NewGrassMap(seed, width, height)
-	if err != nil {
-		return err
-	}
-
 	enc := json.NewEncoder(file)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(world); err != nil {
@@ -67,8 +63,6 @@ func run(args []string) error {
 	if err := os.Rename(tmpPath, outputPath); err != nil {
 		return fmt.Errorf("failed to move temp file into place: %w", err)
 	}
-
-	fmt.Printf("generated map %dx%d with seed %d at %s\n", width, height, seed, outputPath)
 	return nil
 }
 

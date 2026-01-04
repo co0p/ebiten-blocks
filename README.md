@@ -173,6 +173,19 @@ Tries to follow the **ECS pattern** (Entity-Component-System) for separation of 
   - Simple AI behaviors and spawning systems.
 - Maintain **readable, educational code** suitable for blog posts and examples.
 
+## map generation
+
+Maps are generated from pixel images using a small CLI tool:
+
+- `genesis <input-png> <output-json>` reads a fixed-color PNG (for example, game/assets/maps/map.png), converts pixels to terrain (grass, sand, road), and writes a JSON map in the existing pkg/map.Map format.
+- Color mapping (exact RGB values):
+  - Grass: `#00FF00` (0,255,0)
+  - Sand: `#FFFF00` (255,255,0)
+  - Road: `#000000` (0,0,0)
+- Any other pixel color is treated as unsupported and causes genesis to fail with a clear error.
+
+The generated JSON maps can then be loaded and rendered by the game using the existing tilemap composition in the assets package.
+
 ## references
 
 - https://github.com/brotherhood-of-recursive-descent/tankism

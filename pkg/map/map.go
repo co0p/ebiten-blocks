@@ -45,6 +45,13 @@ func (m *Map) validate() error {
 	return nil
 }
 
+// ValidateForGenerator is a thin wrapper around validate, intended for
+// use by generator-style code in other packages to ensure maps satisfy
+// core invariants without exporting the full validate API.
+func (m *Map) ValidateForGenerator() error {
+	return m.validate()
+}
+
 // TileAt returns the tile ID at the given tile coordinates (x, y).
 //
 // The coordinate system is zero-based with (0,0) at the top-left

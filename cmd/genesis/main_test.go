@@ -2,6 +2,9 @@ package main
 
 import (
 	"encoding/json"
+	"image"
+	"image/color"
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -9,9 +12,30 @@ import (
 
 func TestRunGeneratesValidJSON(t *testing.T) {
 	dir := t.TempDir()
+	input := filepath.Join(dir, "input.png")
 	out := filepath.Join(dir, "map.json")
 
-	if err := run([]string{"123", "3", "2", out}); err != nil {
+	// Create a simple valid 3x2 PNG using grass pixels.
+	img := image.NewRGBA(image.Rect(0, 0, 3, 2))
+	grass := color.RGBA{0x00, 0xFF, 0x00, 0xFF}
+	for y := 0; y < 2; y++ {
+		for x := 0; x < 3; x++ {
+			img.Set(x, y, grass)
+		}
+	}
+	f, err := os.Create(input)
+	if err != nil {
+		t.Fatalf("creating input PNG failed: %v", err)
+	}
+	if err := png.Encode(f, img); err != nil {
+		f.Close()
+		t.Fatalf("encoding input PNG failed: %v", err)
+	}
+	if err := f.Close(); err != nil {
+		t.Fatalf("closing input PNG failed: %v", err)
+	}
+
+	if err := run([]string{input, out}); err != nil {
 		t.Fatalf("run failed: %v", err)
 	}
 
@@ -27,27 +51,5 @@ func TestRunGeneratesValidJSON(t *testing.T) {
 
 	if payload["width"].(float64) != 3 || payload["height"].(float64) != 2 {
 		t.Fatalf("unexpected dimensions in JSON: %v", payload)
-	}
-}
-
-func TestRunRejectsInvalidSeed(t *testing.T) {
-	dir := t.TempDir()
-	out := filepath.Join(dir, "map.json")
-
-	if err := run([]string{"-1", "3", "2", out}); err == nil {
-		t.Fatalf("expected error for invalid seed, got nil")
-	}
-}
-
-func TestRunRejectsInvalidDimensions(t *testing.T) {
-	dir := t.TempDir()
-	out := filepath.Join(dir, "map.json")
-
-	if err := run([]string{"1", "0", "2", out}); err == nil {
-		t.Fatalf("expected error for invalid width, got nil")
-	}
-
-	if err := run([]string{"1", "3", "0", out}); err == nil {
-		t.Fatalf("expected error for invalid height, got nil")
 	}
 }
