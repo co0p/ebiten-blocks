@@ -57,3 +57,30 @@ func TestComposeTilemapRegistersComposedImage(t *testing.T) {
 		t.Fatalf("registry image pointer mismatch; registry=%p, returned=%p", fromRegistry, img)
 	}
 }
+
+func TestComposeTilemapMissingSpriteReturnsError(t *testing.T) {
+	// Reset registry so there are no sprites registered.
+	Registry = map[string]*ebiten.Image{}
+
+	tileSize := 8
+	// Build a minimal map that references a tile ID that is not in the
+	// registry so that ComposeTilemap must surface the error.
+	m := &mappkg.Map{
+		Width:  1,
+		Height: 1,
+		Seed:   0,
+		Tiles:  [][]string{{"missing_sprite"}},
+	}
+
+	const composedID = "test_tilemap_missing_sprite"
+	img, err := ComposeTilemap(composedID, m, tileSize)
+	if err == nil {
+		t.Fatalf("expected error for missing sprite, got nil")
+	}
+	if err != ErrTileSpriteNotFound {
+		t.Fatalf("unexpected error: got %v, want %v", err, ErrTileSpriteNotFound)
+	}
+	if img != nil {
+		t.Fatalf("expected no image to be returned on error, got %v", img)
+	}
+}
